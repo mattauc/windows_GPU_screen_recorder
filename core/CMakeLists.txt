@@ -19,6 +19,7 @@ set(GPUR_CORE_SOURCES
     audio/wasapi_loopback.cpp
     audio/wasapi_mic.cpp
     audio/mixer.cpp
+    audio/aac_encoder.cpp
 
     mux/ffmpeg_muxer.cpp
     mux/replay_buffer.cpp
@@ -46,6 +47,7 @@ target_link_libraries(gpur_core
         mfuuid
         mf
         mfreadwrite
+        wmcodecdspuuid     # MFT_CATEGORY_AUDIO_ENCODER + AAC MFT GUIDs
         ole32
         avrt              # multimedia thread priorities (WASAPI)
         ksuser
