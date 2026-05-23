@@ -11,4 +11,4 @@ target_link_libraries(gpur_shared
         spdlog::spdlog
 )
 
-target_compile_features(gpur_shared PUBLIC cxx_std_20)
+target_compile_features(gpur_shared PUBLIC cxx_std_23)

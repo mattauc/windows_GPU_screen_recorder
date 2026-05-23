@@ -43,7 +43,7 @@ Every design decision serves this rule.
 ## 3. Tech Stack (locked)
 
 ```
-Language:     C++20, MSVC v143 (Visual Studio 2022)
+Language:     C++23, MSVC v143 (Visual Studio 2022)   # std::expected requires C++23
 Build:        CMake 3.28+ with vcpkg manifest mode
 Graphics:     DirectX 11
 Capture:      Windows Graphics Capture (WGC) — primary, Win10 1903+
