@@ -11,6 +11,7 @@
 
 #include "layered_window.h"
 #include "shared/log.h"
+#include "shared/wstr.h"
 
 namespace gpur::daemon::overlay {
 
@@ -23,7 +24,7 @@ public:
     Result<void> stop() override { return ok(); }
     void show_toast(ToastKind, std::wstring_view title, std::wstring_view body,
                     std::chrono::milliseconds) override {
-        GPUR_DEBUG(L"[toast stub] {} — {}", std::wstring(title), std::wstring(body));
+        GPUR_DEBUG("[toast stub] {} — {}", gpur::wstring_to_utf8(title), gpur::wstring_to_utf8(body));
     }
     void set_recording_indicator(bool visible) override {
         GPUR_DEBUG("[toast stub] recording indicator: {}", visible);

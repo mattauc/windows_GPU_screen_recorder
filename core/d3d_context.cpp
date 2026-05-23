@@ -1,5 +1,6 @@
 #include "d3d_context.h"
 #include "shared/log.h"
+#include "shared/wstr.h"
 
 #include <comdef.h>
 #include <vector>
@@ -109,8 +110,8 @@ Result<std::shared_ptr<D3dContext>> D3dContext::create(const CreateParams& param
         mt->SetMultithreadProtected(TRUE);
     }
 
-    GPUR_INFO(L"D3D11 device created on adapter \"{}\" (LUID {:08x}:{:08x}), feature level 0x{:x}",
-              std::wstring(desc.Description),
+    GPUR_INFO("D3D11 device created on adapter \"{}\" (LUID {:08x}:{:08x}), feature level 0x{:x}",
+              wstring_to_utf8(desc.Description),
               static_cast<uint32_t>(self->adapter_luid_.HighPart),
               static_cast<uint32_t>(self->adapter_luid_.LowPart),
               static_cast<uint32_t>(got));
