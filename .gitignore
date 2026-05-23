@@ -1,0 +1,77 @@
+# Build outputs
+build/
+out/
+bin/
+obj/
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.obj
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+CMakeUserPresets.json
+
+# vcpkg
+vcpkg_installed/
+.vcpkg/
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+*.sdf
+*.opensdf
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.aps
+ipch/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# CLion / Rider
+.idea/
+cmake-build-*/
+
+# Generated / vendored SDK contents (headers only are committed under third_party/)
+third_party/nvenc_sdk/Lib/
+third_party/nvenc_sdk/Samples/
+third_party/nvenc_sdk/doc/
+third_party/amf/amf/public/samples/
+third_party/onevpl/
+
+# Output files / recordings
+*.h264
+*.h265
+*.hevc
+*.mp4
+*.mkv
+*.aac
+*.wav
+
+# Logs / dumps
+*.log
+*.dmp
+crashpad/
+
+# macOS noise
+.DS_Store
+
+# Windows noise
+Thumbs.db
+desktop.ini

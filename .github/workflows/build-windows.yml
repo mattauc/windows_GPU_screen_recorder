@@ -1,0 +1,68 @@
+name: build-windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite"
+
+jobs:
+  build:
+    name: Build (windows-latest, MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git $env:RUNNER_TEMP/vcpkg
+          & $env:RUNNER_TEMP/vcpkg/bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$env:RUNNER_TEMP/vcpkg" >> $env:GITHUB_ENV
+
+      - name: Create vcpkg cache directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE
+
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}-v1
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Configure (CI preset, NVENC disabled)
+        shell: pwsh
+        run: cmake --preset windows-msvc-ci
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset windows-msvc-ci --parallel
+
+      - name: Run tests
+        shell: pwsh
+        working-directory: out/build/windows-msvc-ci
+        run: ctest --output-on-failure -C Release
+
+      - name: Upload daemon binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpur-daemon-ci-${{ github.sha }}
+          path: out/build/windows-msvc-ci/daemon/Release/gpur-daemon.exe
+          if-no-files-found: warn
+          retention-days: 14

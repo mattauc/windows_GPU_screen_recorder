@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "gpu-screen-recorder",
+  "version": "0.1.0",
+  "description": "Windows-native GPU screen recorder (ShadowPlay clone)",
+  "homepage": "https://github.com/matthewauciello/GPU_ScreenRecorder_Windows",
+  "supports": "windows & !uwp",
+  "dependencies": [
+    "spdlog",
+    {
+      "name": "catch2",
+      "version>=": "3.5.0"
+    }
+  ],
+  "features": {
+    "mux": {
+      "description": "FFmpeg muxer (Phase 1+). Heavy build, off by default in Phase 0.",
+      "dependencies": [
+        {
+          "name": "ffmpeg",
+          "default-features": false,
+          "features": ["avformat", "avcodec", "swresample"]
+        }
+      ]
+    }
+  }
+}
