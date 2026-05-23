@@ -7,10 +7,7 @@
   "supports": "windows & !uwp",
   "dependencies": [
     "spdlog",
-    {
-      "name": "catch2",
-      "version>=": "3.5.0"
-    }
+    "catch2"
   ],
   "features": {
     "mux": {

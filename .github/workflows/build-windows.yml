@@ -46,23 +46,23 @@ jobs:
           restore-keys: |
             vcpkg-${{ runner.os }}-
 
-      - name: Configure (CI preset, NVENC disabled)
+      - name: Configure (Ninja, NVENC disabled)
         shell: pwsh
-        run: cmake --preset windows-msvc-ci
+        run: cmake --preset windows-ninja-ci
 
       - name: Build
         shell: pwsh
-        run: cmake --build --preset windows-msvc-ci --parallel
+        run: cmake --build --preset windows-ninja-ci --parallel
 
       - name: Run tests
         shell: pwsh
-        working-directory: out/build/windows-msvc-ci
-        run: ctest --output-on-failure -C Release
+        working-directory: out/build/windows-ninja-ci
+        run: ctest --output-on-failure
 
       - name: Upload daemon binary
         uses: actions/upload-artifact@v4
         with:
           name: gpur-daemon-ci-${{ github.sha }}
-          path: out/build/windows-msvc-ci/daemon/Release/gpur-daemon.exe
+          path: out/build/windows-ninja-ci/daemon/gpur-daemon.exe
           if-no-files-found: warn
           retention-days: 14
