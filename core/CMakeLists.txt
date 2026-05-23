@@ -51,6 +51,10 @@ target_link_libraries(gpur_core
         ksuser
 )
 
+# FFmpeg (vendored via vcpkg's FindFFMPEG.cmake).
+target_include_directories(gpur_core PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_libraries(gpur_core PRIVATE ${FFMPEG_LIBRARIES})
+
 # Per-backend feature flags propagated as preprocessor definitions.
 if(GPUR_BUILD_NVENC)
     target_compile_definitions(gpur_core PUBLIC GPUR_HAVE_NVENC=1)

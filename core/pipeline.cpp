@@ -63,8 +63,8 @@ Result<void> Pipeline::run(const Config& cfg) {
     }
     nv12_scratch_ = *nv12;
 
-    // 4. Muxer (Phase 0: just Annex-B file)
-    muxer_ = mux::make_annexb_writer();
+    // 4. Muxer — picks AnnexB for raw .h264/.h265, FFmpeg MKV otherwise.
+    muxer_ = mux::make_muxer_for_path(cfg.output_path);
     mux::IMuxer::OpenParams mux_params{};
     mux_params.output_path  = cfg.output_path;
     mux_params.video_codec  = enc_params.codec;

@@ -73,6 +73,10 @@ message(STATUS "  NVENC SDK path : ${GPUR_NVENC_SDK_PATH}")
 
 find_package(spdlog CONFIG REQUIRED)
 
+# FFmpeg comes from vcpkg's port — uses a custom FindFFMPEG.cmake that
+# exposes FFMPEG_INCLUDE_DIRS / FFMPEG_LIBRARIES with the requested feature set.
+find_package(FFMPEG REQUIRED COMPONENTS avformat avcodec avutil swresample)
+
 if(GPUR_BUILD_TESTS)
     find_package(Catch2 3 CONFIG REQUIRED)
     enable_testing()

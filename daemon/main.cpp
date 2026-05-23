@@ -21,7 +21,7 @@
 namespace {
 
 struct CliArgs {
-    std::filesystem::path output{"recording.h264"};
+    std::filesystem::path output{"recording.mkv"};
     uint32_t              duration_sec{0};
     uint32_t              fps{60};
     uint32_t              bitrate_bps{50'000'000};
@@ -37,7 +37,9 @@ void print_usage() {
         "Usage: gpur-daemon [options]\n"
         "\n"
         "Options:\n"
-        "  --output PATH          Output Annex-B stream (default: recording.h264)\n"
+        "  --output PATH          Output file (default: recording.mkv).\n"
+        "                         .mkv = Matroska container (recommended).\n"
+        "                         .h264/.h265 = raw Annex-B bitstream (for debugging).\n"
         "  --duration SEC         Recording length in seconds (0 = until Ctrl+C)\n"
         "  --fps N                Capture/encode framerate (default: 60)\n"
         "  --bitrate BPS          Encoder bitrate, bits/sec (default: 50_000_000)\n"

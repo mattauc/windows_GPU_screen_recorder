@@ -39,7 +39,13 @@ public:
 // Phase 0 muxer — just writes Annex-B NAL units to disk.
 std::unique_ptr<IMuxer> make_annexb_writer();
 
-// Phase 1 muxer — FFmpeg libavformat. Stub for now.
+// Phase 1 muxer — FFmpeg libavformat. Matroska (.mkv) only for now;
+// MP4 with avcC bitstream conversion lands in Phase 1.B.
 std::unique_ptr<IMuxer> make_ffmpeg_muxer();
+
+// Convenience: pick the right muxer based on the output file extension.
+//   .h264 / .265 / .hevc          -> AnnexBFileWriter
+//   .mkv / .mp4 / anything else   -> FfmpegMatroskaMuxer
+std::unique_ptr<IMuxer> make_muxer_for_path(const std::filesystem::path& output);
 
 } // namespace gpur::core::mux

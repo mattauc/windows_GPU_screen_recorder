@@ -7,18 +7,11 @@
   "supports": "windows & !uwp",
   "dependencies": [
     "spdlog",
-    "catch2"
-  ],
-  "features": {
-    "mux": {
-      "description": "FFmpeg muxer (Phase 1+). Heavy build, off by default in Phase 0.",
-      "dependencies": [
-        {
-          "name": "ffmpeg",
-          "default-features": false,
-          "features": ["avformat", "avcodec", "swresample"]
-        }
-      ]
+    "catch2",
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": ["avformat", "avcodec", "swresample"]
     }
-  }
+  ]
 }
