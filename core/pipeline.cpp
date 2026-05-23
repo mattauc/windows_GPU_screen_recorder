@@ -63,15 +63,80 @@ Result<void> Pipeline::run(const Config& cfg) {
     }
     nv12_scratch_ = *nv12;
 
-    // 4. Muxer — picks AnnexB for raw .h264/.h265, FFmpeg MKV otherwise.
+    // 4. Audio chain (must be initialised before muxer.open so we have the
+    //    AAC AudioSpecificConfig to pass as extradata).
+    std::vector<uint8_t> aac_codec_config;
+    audio::Format        mixer_output_format{48'000, 2, audio::SampleFormat::F32};
+
+    if (cfg.capture_audio) {
+        loopback_ = audio::WasapiLoopback::create();
+
+        audio::Mixer::Params mp{};
+        mp.output_format  = mixer_output_format;
+        mp.loopback_gain  = 1.0f;
+        mp.mic_gain       = 0.0f;
+        mixer_            = audio::Mixer::create(mp);
+
+        aac_encoder_      = audio::AacEncoder::create();
+        audio::AacEncoder::Params ap{};
+        ap.sample_rate    = mixer_output_format.sample_rate;
+        ap.channels       = mixer_output_format.channels;
+        ap.bitrate_bps    = cfg.audio_bitrate_bps;
+
+        auto cfg_res = aac_encoder_->initialise(ap,
+            [this](audio::AacEncoder::Packet pkt) {
+                mux::IMuxer::EncodedAudioPacket ep;
+                ep.data     = std::move(pkt.data);
+                ep.pts      = pkt.pts;
+                ep.duration = pkt.duration;
+                std::scoped_lock lk(mux_mutex_);
+                if (muxer_) (void)muxer_->write_audio(ep);
+            });
+        if (!cfg_res) {
+            GPUR_WARN("AAC encoder init failed: {} — recording without audio",
+                      cfg_res.error().message);
+            aac_encoder_.reset();
+            mixer_.reset();
+            loopback_.reset();
+        } else {
+            aac_codec_config = std::move(*cfg_res);
+        }
+    }
+
+    // 5. Muxer — picks AnnexB for raw .h264/.h265, FFmpeg MKV otherwise.
     muxer_ = mux::make_muxer_for_path(cfg.output_path);
     mux::IMuxer::OpenParams mux_params{};
-    mux_params.output_path  = cfg.output_path;
-    mux_params.video_codec  = enc_params.codec;
-    mux_params.video_fps    = enc_params.fps;
-    mux_params.video_width  = enc_params.width;
-    mux_params.video_height = enc_params.height;
+    mux_params.output_path        = cfg.output_path;
+    mux_params.video_codec        = enc_params.codec;
+    mux_params.video_fps          = enc_params.fps;
+    mux_params.video_width        = enc_params.width;
+    mux_params.video_height       = enc_params.height;
+    mux_params.has_audio          = (aac_encoder_ != nullptr);
+    mux_params.audio_format       = mixer_output_format;
+    mux_params.audio_codec_config = aac_codec_config;
+    mux_params.audio_bitrate_bps  = cfg.audio_bitrate_bps;
     if (auto r = muxer_->open(mux_params); !r) return err(std::move(r.error()));
+
+    // 6. Start audio capture (mixer -> aac_encoder is set up; loopback pumps
+    //    blocks through them).
+    if (loopback_ && mixer_ && aac_encoder_) {
+        if (auto r = mixer_->start([this](audio::Block b) {
+                if (aac_encoder_) (void)aac_encoder_->push(b);
+            }); !r) {
+            GPUR_WARN("Mixer start failed: {} — recording without audio", r.error().message);
+            mixer_.reset();
+            aac_encoder_.reset();
+            loopback_.reset();
+        } else if (auto r2 = loopback_->start([this](audio::Block b) {
+                if (mixer_) (void)mixer_->push_loopback(std::move(b));
+            }); !r2) {
+            GPUR_WARN("Loopback start failed: {} — recording without audio", r2.error().message);
+            (void)mixer_->stop();
+            mixer_.reset();
+            aac_encoder_.reset();
+            loopback_.reset();
+        }
+    }
 
     GPUR_INFO("Pipeline running: {}x{} @ {}fps → {}",
               enc_params.width, enc_params.height, enc_params.fps,
@@ -110,19 +175,33 @@ Result<void> Pipeline::run(const Config& cfg) {
         for (auto& pkt : *packets) {
             bytes_written_.fetch_add(pkt.data.size(), std::memory_order_relaxed);
             frames_encoded_.fetch_add(1, std::memory_order_relaxed);
+            std::scoped_lock lk(mux_mutex_);
             if (auto r = muxer_->write_video(pkt); !r) return err(std::move(r.error()));
         }
+    }
+
+    // Shut down audio first so the AAC encoder's drained packets get muxed
+    // before we close the file.
+    if (loopback_) (void)loopback_->stop();
+    if (mixer_)    (void)mixer_->stop();
+    if (aac_encoder_) {
+        (void)aac_encoder_->drain();
+        (void)aac_encoder_->shutdown();
     }
 
     // Flush encoder + write trailing packets.
     if (auto tail = encoder_->flush(); tail) {
         for (auto& pkt : *tail) {
             bytes_written_.fetch_add(pkt.data.size(), std::memory_order_relaxed);
+            std::scoped_lock lk(mux_mutex_);
             (void)muxer_->write_video(pkt);
         }
     }
 
-    (void)muxer_->close();
+    {
+        std::scoped_lock lk(mux_mutex_);
+        (void)muxer_->close();
+    }
     (void)encoder_->shutdown();
     (void)capture_->stop();
 

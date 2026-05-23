@@ -4,9 +4,12 @@
 #include "core/encode/iencoder.h"
 #include "shared/result.h"
 
+#include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace gpur::core::mux {
 
@@ -25,15 +28,25 @@ public:
         uint32_t                video_width{};
         uint32_t                video_height{};
 
-        // Audio (ignored by Phase 0 AnnexBFileWriter):
+        // Audio (ignored by AnnexBFileWriter):
         bool                    has_audio{false};
         audio::Format           audio_format{};
+        std::vector<uint8_t>    audio_codec_config{};    // AudioSpecificConfig (AAC ASC)
+        uint32_t                audio_bitrate_bps{192000};
+    };
+
+    // Encoded audio packet — output of the AAC encoder. Distinct from
+    // audio::Block (raw PCM) which is the mixer's currency.
+    struct EncodedAudioPacket {
+        std::vector<uint8_t>     data;
+        std::chrono::nanoseconds pts{};
+        std::chrono::nanoseconds duration{};
     };
 
     virtual Result<void> open(const OpenParams& params) = 0;
     virtual Result<void> close()                        = 0;
     virtual Result<void> write_video(const encode::IEncoder::EncodedPacket& pkt) = 0;
-    virtual Result<void> write_audio(const audio::Block& block)                  = 0;
+    virtual Result<void> write_audio(const EncodedAudioPacket& pkt)              = 0;
 };
 
 // Phase 0 muxer — just writes Annex-B NAL units to disk.

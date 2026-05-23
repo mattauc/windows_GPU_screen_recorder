@@ -25,8 +25,10 @@ struct CliArgs {
     uint32_t              duration_sec{0};
     uint32_t              fps{60};
     uint32_t              bitrate_bps{50'000'000};
+    uint32_t              audio_bitrate_bps{192'000};
     int                   monitor{0};
     std::string           codec{"h264"};
+    bool                  capture_audio{true};
     bool                  show_help{false};
 };
 
@@ -45,6 +47,8 @@ void print_usage() {
         "  --bitrate BPS          Encoder bitrate, bits/sec (default: 50_000_000)\n"
         "  --monitor N            Monitor index, 0 = primary (default: 0)\n"
         "  --codec h264|hevc      Encoder codec (default: h264)\n"
+        "  --audio-bitrate BPS    AAC audio bitrate (default: 192000)\n"
+        "  --no-audio             Disable system-audio capture\n"
         "  --help                 Show this help\n";
 }
 
@@ -94,6 +98,13 @@ bool parse_args(int argc, char** argv, CliArgs& out) {
                 std::cerr << "--codec must be h264 or hevc\n";
                 return false;
             }
+        } else if (a == "--audio-bitrate") {
+            auto v = needs_value(a); if (v.empty()) return false;
+            if (!parse_uint(v, out.audio_bitrate_bps)) {
+                std::cerr << "bad --audio-bitrate\n"; return false;
+            }
+        } else if (a == "--no-audio") {
+            out.capture_audio = false;
         } else {
             std::cerr << "unknown argument: " << a << "\n";
             return false;
@@ -158,10 +169,13 @@ int main(int argc, char** argv) {
         : gpur::core::encode::Codec::H264;
     cfg.encoder.keyframe_interval_frames  = args.fps * 2;   // 2s
     cfg.duration                          = std::chrono::seconds(args.duration_sec);
+    cfg.capture_audio                     = args.capture_audio;
+    cfg.audio_bitrate_bps                 = args.audio_bitrate_bps;
 
-    GPUR_INFO("Starting recording: output={}, monitor={}, {} fps, {} kbps, codec={}",
+    GPUR_INFO("Starting recording: output={}, monitor={}, {} fps, {} kbps, codec={}, audio={}",
               cfg.output_path.string(), args.monitor, args.fps,
-              args.bitrate_bps / 1000, args.codec);
+              args.bitrate_bps / 1000, args.codec,
+              args.capture_audio ? "on" : "off");
 
     auto r = (*pipeline)->run(cfg);
     g_active_pipeline.store(nullptr);

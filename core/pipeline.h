@@ -1,5 +1,9 @@
 #pragma once
 
+#include "core/audio/aac_encoder.h"
+#include "core/audio/mixer.h"
+#include "core/audio/wasapi_loopback.h"
+#include "core/audio/wasapi_mic.h"
 #include "core/capture/icapture.h"
 #include "core/convert/color_converter.h"
 #include "core/d3d_context.h"
@@ -11,6 +15,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -23,11 +28,15 @@ namespace gpur::core {
 class Pipeline {
 public:
     struct Config {
-        std::filesystem::path           output_path{"recording.h264"};
+        std::filesystem::path           output_path{"recording.mkv"};
         capture::Target                 target{};
         encode::EncoderParams           encoder;
         // duration == 0 means "run until stop() is called".
         std::chrono::seconds            duration{0};
+
+        // Audio (loopback only for now; see audio/mixer.cpp for the mic TODO).
+        bool                            capture_audio{true};
+        uint32_t                        audio_bitrate_bps{192'000};
     };
 
     static Result<std::unique_ptr<Pipeline>> create(std::shared_ptr<D3dContext> ctx);
@@ -54,6 +63,12 @@ private:
     std::unique_ptr<encode::IEncoder>          encoder_;
     std::unique_ptr<mux::IMuxer>               muxer_;
     ComPtr<ID3D11Texture2D>                    nv12_scratch_;   // staging NV12 written by converter
+
+    // Audio chain (created only when Config::capture_audio is true).
+    std::unique_ptr<audio::WasapiLoopback>     loopback_;
+    std::unique_ptr<audio::Mixer>              mixer_;
+    std::unique_ptr<audio::AacEncoder>         aac_encoder_;
+    std::mutex                                 mux_mutex_;        // serialises write_audio + write_video
 
     std::atomic<bool>                          stop_requested_{false};
     mutable std::atomic<uint64_t>              frames_captured_{0};
